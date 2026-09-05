@@ -49,12 +49,35 @@ final class CalendarStore: ObservableObject {
 
     /// 指定期間・カレンダーのイベントをバックグラウンドで取得し、開始日時順に返す。
     /// (仕様書 6章: UIスレッドを長時間ブロックしない)
+    ///
+    /// `predicateForEvents(withStart:end:calendars:)` は**最大4年間**までしか
+    /// 正しく機能しない(それを超える範囲を渡すと常に0件になる)という
+    /// EventKitの制約があるため、4年未満のチャンクに分割して複数回問い合わせる。
     func fetchEvents(calendar: EKCalendar, start: Date, end: Date) async -> [EKEvent] {
         let store = eventStore
         return await Task.detached(priority: .userInitiated) {
-            let predicate = store.predicateForEvents(withStart: start, end: end, calendars: [calendar])
-            let events = store.events(matching: predicate)
-            return events.sorted { $0.startDate < $1.startDate }
+            var results: [EKEvent] = []
+            var seenKeys = Set<String>()
+            let gregorian = Calendar(identifier: .gregorian)
+
+            var chunkStart = start
+            while chunkStart < end {
+                let proposedEnd = gregorian.date(byAdding: .year, value: 4, to: chunkStart) ?? end
+                let chunkEnd = min(proposedEnd, end)
+
+                let predicate = store.predicateForEvents(withStart: chunkStart, end: chunkEnd, calendars: [calendar])
+                for event in store.events(matching: predicate) {
+                    let key = "\(event.eventIdentifier ?? "")|\(event.startDate.timeIntervalSince1970)"
+                    if seenKeys.insert(key).inserted {
+                        results.append(event)
+                    }
+                }
+
+                if chunkEnd >= end { break }
+                chunkStart = chunkEnd
+            }
+
+            return results.sorted { $0.startDate < $1.startDate }
         }.value
     }
 }
