@@ -7,8 +7,20 @@ CIが生成したunsigned `.ipa` を、Windows上のSideloadlyで無料Apple ID�
 ## 前提
 
 - Windows PCとiPhoneをLightning/USB-Cケーブルで接続できること。
-- iTunes、またはApple Mobile Device Support(iTunesに同梱)がインストール
-  済みであること。Sideloadlyのインストーラーが自動で要求する。
+- **Apple Mobile Device Support**(Appleの公式iTunesインストーラーに同梱
+  されるUSBドライバ)がインストール済みであること。
+  - **`winget install --id Apple.iTunes`(サイレントインストール)では
+    このドライバが入らない。** iTunes自体は「インストール済み」の状態に
+    なるが、`Apple Mobile Device Service`が作成されず、Sideloadlyから
+    iPhoneが認識できない(2026-09-05実機確認)。
+  - 対処: `winget show --id Apple.iTunes`でインストーラーURL(Appleの
+    公式CDN、SHA256ハッシュ付き)を取得し、そのexeを直接ダウンロードして
+    **ダブルクリックでフル対話モードのセットアップウィザードを最後まで
+    進める**。これでApple Application Support・Bonjour・Apple Mobile
+    Device Supportが正しく連鎖インストールされ、`Apple Mobile Device
+    Service`(Windowsサービス)が`Running`状態になる。
+  - 確認コマンド: `Get-Service | Where-Object { $_.DisplayName -match
+    "Apple" }` で`Apple Mobile Device Service`が`Running`であること。
 - Apple ID(無料のもので可。2ファクタ認証が有効なものが必要)。
 
 ## 手順
@@ -16,19 +28,29 @@ CIが生成したunsigned `.ipa` を、Windows上のSideloadlyで無料Apple ID�
 1. GitHub Actionsの該当ワークフロー実行(`build.yml`)のArtifact欄から
    `CalendarExporter-unsigned-ipa` をダウンロードし、`CalendarExporter.ipa`
    を展開する。
-2. [Sideloadly](https://sideloadly.io/) をダウンロード・インストールする。
+2. [Sideloadly](https://sideloadly.io/) をインストールする
+   (`winget install --id iOSGods.Sideloadly`で入る)。
 3. iPhoneをUSBでPCに接続し、iPhone側で「このコンピュータを信頼する」を
    選択する。
-4. Sideloadlyを起動し、接続したiPhoneが認識されていることを確認する。
-5. `.ipa` を選択(ドラッグ&ドロップまたはIPAアイコンをクリックしてファイル
+4. Sideloadlyを起動する。**初回起動時、「ローカルAnisetteサーバーの
+   セットアップに管理者権限が必要」という警告が出る**(レジストリキー
+   作成のための一度きりの処理)。「OK」→ UAC確認で「はい」を選ぶと、
+   Sideloadlyが管理者権限で自動的に再起動する。
+5. iPhoneが認識されていることを確認する。
+6. `.ipa` を選択(ドラッグ&ドロップまたはIPAアイコンをクリックしてファイル
    選択)し、Apple IDのメールアドレスを入力欄に入力する。
-6. 「Start」を押すと、Apple IDでのサインインを求められる(2ファクタ認証の
+7. 「Start」を押すと、Apple IDでのサインインを求められる(2ファクタ認証の
    確認コード入力が必要な場合がある)。
-7. Sideloadlyが自動でIPAを無料Apple IDの開発者証明書で再署名し、iPhoneへ
+8. Sideloadlyが自動でIPAを無料Apple IDの開発者証明書で再署名し、iPhoneへ
    インストールする。
-8. iPhone側で初回起動時に「信頼されていないデベロッパ」の警告が出る場合、
+9. iPhone側で初回起動時に「信頼されていないデベロッパ」の警告が出るので、
    設定アプリ →「一般」→「VPNとデバイス管理」から該当のApple IDを選択し
    「信頼」をタップする。
+10. **iOS 16以降は、上記の「信頼」に加えて別途デベロッパモードを有効化
+    しないとアプリが起動しない**(「デベロッパモードが必要です」と表示
+    される)。設定アプリ →「プライバシーとセキュリティ」→
+    「デベロッパモード」をオンにし、指示に従って再起動 → 「オンにする」
+    を確定する。
 
 ## 制約: 7日ごとの再インストールが必要
 
@@ -45,8 +67,10 @@ CIが生成したunsigned `.ipa` を、Windows上のSideloadlyで無料Apple ID�
 
 ## トラブルシューティング
 
-- **iPhoneが認識されない**: iTunes/Apple Mobile Device Supportの再インス
-  トール、ケーブル・USBポートの変更を試す。
+- **iPhoneが認識されない**: 上記「前提」の`Apple Mobile Device Service`
+  が`Running`になっているか確認する。なっていない場合はiTunesの
+  サイレントインストールが原因である可能性が高いので、iTunesを一度
+  アンインストールしてから公式exeをフル対話モードで再インストールする。
 - **「デベロッパApple IDに無料枠の上限」エラー**: 無料Apple IDは同時に
   インストールできるアプリ数(Bundle ID数)に上限(10個/7日)があるため、
   Bundle IDが枯渇していないか確認する。このMVPは
