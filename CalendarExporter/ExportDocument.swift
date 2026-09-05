@@ -18,6 +18,6 @@ struct ExportDocument: FileDocument {
     }
 
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        FileWrapper(regularFileContents: data)
+        FileWrapper(regularFileWithContents: data)
     }
 }
