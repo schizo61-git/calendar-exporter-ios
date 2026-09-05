@@ -1,0 +1,40 @@
+name: CalendarExporter
+options:
+  bundleIdPrefix: com.schizo61.study
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+configs:
+  Debug: debug
+  Release: release
+targets:
+  CalendarExporter:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: CalendarExporter
+        excludes:
+          - "Info.plist"
+    info:
+      path: CalendarExporter/Info.plist
+      properties:
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSCalendarsFullAccessUsageDescription: >-
+          カレンダーの予定をCSV/JSONファイルへ書き出すために読み取りアクセスが必要です。
+          このアプリはカレンダーへの書き込み・変更・削除は一切行いません。
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.schizo61.study.calendarexporter
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGN_IDENTITY: ""
+        DEVELOPMENT_TEAM: ""
